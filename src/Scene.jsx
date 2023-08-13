@@ -1,28 +1,20 @@
-import React from 'react';
-import { useGLTF } from '@react-three/drei';
+import React, { useRef } from 'react'
+import { useGLTF } from '@react-three/drei'
 
 export default function Model(props) {
-  const { nodes, materials } = useGLTF(props.sc || '/ss/scene.gltf');
-
-  const meshComponents = [];
-
-  for (const nodeName in nodes) {
-    const node = nodes[nodeName];
-
-    if (node.isMesh) {
-      meshComponents.push(
-        <mesh key={nodeName} geometry={node.geometry} material={node.material} />
-      );
-    }
-  }
-
+  const { nodes, materials } = useGLTF('/skull/scene.gltf')
   return (
     <group {...props} dispose={null}>
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <group rotation={[Math.PI / 2, 0, 0]}>
-          {meshComponents}
+          <mesh geometry={nodes.defaultMaterial.geometry} material={materials.DefaultMaterial} />
+          <mesh geometry={nodes.defaultMaterial_1.geometry} material={materials.DefaultMaterial} />
+          <mesh geometry={nodes.defaultMaterial_2.geometry} material={materials.DefaultMaterial} />
+          <mesh geometry={nodes.defaultMaterial_3.geometry} material={materials.DefaultMaterial} />
         </group>
       </group>
     </group>
-  );
+  )
 }
+
+useGLTF.preload('/skull/scene.gltf')
