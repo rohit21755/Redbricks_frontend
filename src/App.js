@@ -1,11 +1,53 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as Hands from '@mediapipe/hands';
 import { Canvas , useThree} from '@react-three/fiber';
-import { useGLTF, Stage, OrbitControls } from '@react-three/drei';
+import { useGLTF, Stage, OrbitControls, useAnimations } from '@react-three/drei';
 import * as mediapipeUtils from '@mediapipe/drawing_utils';
 import { Camera } from '@mediapipe/camera_utils';
 import Webcam from 'react-webcam';
-import Model from "./Scene"
+// import { model } from '@tensorflow/tfjs';
+// import Model from "./Scene";
+// import { useGLTF } from '@react-three/drei'
+
+function Model(props) {
+
+  // const { nodes, materials } = useGLTF('/skull/scene.gltf')
+  const modelRef = useRef();
+  const [modelScale, setModelScale] = useState(0.0); 
+  const [modelRotation, setModelRotation] = useState(0.0);
+  // const group = useRef()
+  // const { nodes, materials, animations } = useGLTF('/skull/scene.gltf')
+  // const { actions } = useAnimations(animations, group)
+  useEffect(() => {}, [props.rotation]);
+
+  
+  useEffect(() => {
+    if (props.behavior === 'scale') {
+      setModelScale(1.5); 
+    } else if (props.behavior === 'rotate') {
+      setModelRotation(Math.PI / 4); 
+    }
+    else if (props.behavior === 'default') {
+      setModelScale(1.0); 
+      setModelRotation(0.0); 
+    }
+       
+    
+  }, [props.behavior]);
+  const { nodes, materials } = useGLTF('/skull/scene.gltf')
+  return (
+    
+    <group {...props} dispose={null} scale={modelScale}>
+    <mesh geometry={nodes.Clouds_2_Clouds_1.geometry} material={materials.Clouds} position={[0, 0, -500]} />
+    <mesh geometry={nodes.Ocean_Mat_0.geometry} material={materials.material} position={[0, 0, -500]} />
+    <mesh geometry={nodes.CONT_Extrude_Mat3_0.geometry} material={materials['Mat.3']} position={[-64.303, 10.837, -5]} />
+    <mesh geometry={nodes.SP_Extrude_Ice_0.geometry} material={materials.material_3} position={[0, 500, -500]} />
+    <mesh geometry={nodes.NP_Extrude_Ice_0.geometry} material={materials.material_3} position={[0, -500, -500]} />
+  </group>
+
+    
+  )
+}
 function Controls() {
   const {
     camera,
@@ -25,24 +67,15 @@ function Controls() {
     />
   );
 }
+
 const App = () => {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
+  const [modelBehavior, setModelBehavior] = useState('default');
   const cameraRef = useRef();
-  const [prevDistance, setPrevDistance] = useState(0);
-  const [modelPosition, setModelPosition] = React.useState([0, 0, 0]);
 var camera = null;
 const [zoomLevel, setZoomLevel] = useState(5); // Initial zoom level
-  const [isZoomingIn, setIsZoomingIn] = useState(false);
-  const [isZoomingOut, setIsZoomingOut] = useState(false);
-  
-  const handlePinched = () => {
-    setZoomLevel(zoomLevel - 0.1);
-  };
 
-  const handleNotPinched = () => {
-    setZoomLevel(zoomLevel + 0.1);
-  };
  const onResults = (results) =>   {
   // console.log("Hello")
   console.log('Number of hands detected:', results.multiHandLandmarks.length);
@@ -67,11 +100,11 @@ if (results.multiHandLandmarks) {
       Hands.HAND_CONNECTIONS,
       { color: '#00FF00', lineWidth: 1 }
     );
-    mediapipeUtils.drawLandmarks(
-      canvasCtx,
-      landmarks,
-      { color: '#FF0000', lineWidth: 1 }
-    );
+    // mediapipeUtils.drawLandmarks(
+    //   canvasCtx,
+    //   landmarks,
+    //   { color: '#FF0000', lineWidth: 0 }
+    // );
     console.log(results.multiHandLandmarks.maxNumHands)
     // const thumbTip = landmarks[4];
     // const pinkyTip = landmarks[20];
@@ -80,24 +113,40 @@ if (results.multiHandLandmarks) {
       for (const landmarks of results.multiHandLandmarks) {
         // ... Existing code ...
 
-        const thumbTip = landmarks[4];
-        const indexTip = landmarks[8];
+      const thumbTip = landmarks[4];
+      const indexTip = landmarks[8];
+      const middleTip = landmarks[12];
+      const ringFinger = landmarks[16];
+      const pinkyTip = landmarks[20];
+      
 
-        const distanceThumbToIndex = Math.sqrt(
-          (thumbTip.x - indexTip.x) ** 2 + (thumbTip.y - indexTip.y) ** 2
-        );
+      const distanceThumbToPinky = Math.sqrt((pinkyTip.x - thumbTip.x) ** 2 + (pinkyTip.y - thumbTip.y) ** 2);
 
-        // Define a threshold for pinched gesture detection
-        const pinchThreshold = 0.05; // Adjust as needed
+      const distanceThumbToIndex = Math.sqrt(
+        (thumbTip.x - indexTip.x) ** 2 + (thumbTip.y - indexTip.y) ** 2
+      );
+      const distanceIndexToMiddle = Math.sqrt(
+        (indexTip.x - middleTip.x) ** 2 + (indexTip.y - middleTip.y) ** 2
+      );
 
-        if (distanceThumbToIndex < pinchThreshold) {
-          // setIsPinched(true);
-          // Model.scale.set(0,0, -1);
-          // cameraRef.current.scal;
-        } else {
-          // setIsPinched(false);
-          // Model.scale.set(0,0, 1);
-        }
+      // Define gesture thresholds
+      const rightClickThreshold = 0.03;
+      const leftClickThreshold = 0.05;
+
+      if (distanceThumbToPinky < rightClickThreshold) {
+        console.log("Hello")
+        // Update model behavior for right-click
+        // Model.zoomIn();
+        setModelBehavior('rotate'); // Or perform any other action you want
+      } else if (distanceThumbToIndex < leftClickThreshold && distanceIndexToMiddle < leftClickThreshold) {
+        // Update model behavior for left-click
+        console.log("not hello")
+        setModelBehavior('scale'); // Or perform any other action you want
+      }
+      else {
+        
+        setModelBehavior('default'); 
+      }
       }
     }
   }
@@ -193,7 +242,7 @@ canvasCtx.restore();
             <ambientLight />
             <pointLight position={[10, 10, 10]} />
             <Controls/>
-              <Model />
+              <Model behavior={modelBehavior}/>
             
           </Canvas>
     </div>
